@@ -6,12 +6,10 @@ const ROUND_DURATION = 60;
 const QUESTION_LIMIT = 5;
 
 async function callClaude(messages, system) {
-  const body = { model: "claude-sonnet-4-20250514", max_tokens: 1000, messages };
-  if (system) body.system = system;
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const res = await fetch("/api/generate-stories", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ messages, system }),
   });
   const data = await res.json();
   return data.content?.find(b => b.type === "text")?.text || "";

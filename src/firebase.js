@@ -2,12 +2,12 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyA9CQ5GFaUAKdhbActVya3oQw5QeZIxcL8",
+  authDomain: "that-s-cap-party-game.firebaseapp.com",
+  projectId: "that-s-cap-party-game",
+  storageBucket: "that-s-cap-party-game.firebasestorage.app",
+  messagingSenderId: "503087351957",
+  appId: "1:503087351957:web:e1e9e46223b580344ab39c",
 };
 
 const app = initializeApp(firebaseConfig);
