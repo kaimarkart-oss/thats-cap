@@ -1,4 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
+import { db } from './firebase';
+import { doc, setDoc, updateDoc, onSnapshot, getDoc, arrayUnion } from 'firebase/firestore';
 
 const ROUND_DURATION = 60;
 const QUESTION_LIMIT = 5;
@@ -164,7 +166,7 @@ function Timer({ seconds, total }) {
   );
 }
 
-function HomeScreen({ onCreateLobby, onJoinLobby, onTestWithNPCs }) {
+function HomeScreen({ onCreateLobby, onJoinLobby, joinError }) {
   const [joinCode, setJoinCode] = useState("");
   const [playerName, setPlayerName] = useState("");
   const [mode, setMode] = useState(null);
@@ -196,6 +198,7 @@ function HomeScreen({ onCreateLobby, onJoinLobby, onTestWithNPCs }) {
           <TextInput value={playerName} onChange={setPlayerName} placeholder="Enter your name..." style={{ marginBottom: 12 }} />
           <p style={{ color: "#aaa", fontFamily: "Courier New", fontSize: 13 }}>Lobby code:</p>
           <TextInput value={joinCode} onChange={v => setJoinCode(v.toUpperCase())} placeholder="e.g. XKCD" />
+          {joinError && <p style={{ fontFamily: "Courier New", fontSize: 12, color: "#e8573a", marginTop: 8, marginBottom: 0 }}>{joinError}</p>}
           <div style={{ height: 16 }} />
           <div style={{ display: "flex", gap: 10 }}>
             <Btn onClick={() => playerName.trim() && joinCode.trim() && onJoinLobby(joinCode.trim(), playerName.trim())} disabled={!playerName.trim() || !joinCode.trim()} color="#4ecdc4">JOIN</Btn>
@@ -744,7 +747,7 @@ function VoterView({ round, players, timeLeft, totalTime, questionsLeft, onAskQu
   );
 }
 
-function RevealScreen({ round, players, votes, onNext }) {
+function RevealScreen({ round, players, votes, onNext, isHost }) {
   const teller = players.find(p => p.id === round.playerId);
   const { story } = round;
   const votersList = players.filter(p => p.id !== round.playerId);
@@ -789,12 +792,15 @@ function RevealScreen({ round, players, votes, onNext }) {
           <span style={{ fontFamily: "Bebas Neue, Impact", fontSize: 16, color: "#f5a623" }}>+{tellerPoints}</span>
         </div>
       </Card>
-      <Btn onClick={onNext} color="#f5e642" style={{ width: "100%" }}>NEXT ROUND</Btn>
+      {isHost
+        ? <Btn onClick={onNext} color="#f5e642" style={{ width: "100%" }}>NEXT ROUND</Btn>
+        : <p style={{ fontFamily: "Courier New", fontSize: 12, color: "#555", textAlign: "center" }}>waiting for host to continue...</p>
+      }
     </div>
   );
 }
 
-function ScoreboardScreen({ players, scores, roundIndex, totalRounds, onNext, isFinal }) {
+function ScoreboardScreen({ players, scores, roundIndex, totalRounds, onNext, isFinal, isHost }) {
   const sorted = [...players].sort((a, b) => (scores[b.id] || 0) - (scores[a.id] || 0));
   const medals = ["1st", "2nd", "3rd"];
   return (
@@ -818,105 +824,142 @@ function ScoreboardScreen({ players, scores, roundIndex, totalRounds, onNext, is
         </div>
       ))}
       <div style={{ height: 20 }} />
-      {!isFinal && <Btn onClick={onNext} color="#f5e642" style={{ width: "100%" }}>CONTINUE</Btn>}
+      {!isFinal && (isHost
+        ? <Btn onClick={onNext} color="#f5e642" style={{ width: "100%" }}>CONTINUE</Btn>
+        : <p style={{ fontFamily: "Courier New", fontSize: 12, color: "#555", textAlign: "center" }}>waiting for host to continue...</p>
+      )}
       {isFinal && <Btn onClick={() => window.location.reload()} color="#4ecdc4" style={{ width: "100%" }}>PLAY AGAIN</Btn>}
     </div>
   );
 }
 
 export default function App() {
-  const [screen, setScreen] = useState("home");
-  const [lobby, setLobby] = useState(null);
   const [currentPlayerId] = useState(() => "p_" + Date.now() + "_" + Math.random().toString(36).slice(2));
-  const [rounds, setRounds] = useState([]);
-  const [roundIndex, setRoundIndex] = useState(0);
-  const [scores, setScores] = useState({});
-  const [votes, setVotes] = useState({});
+  const [lobbyCode, setLobbyCode] = useState(null);
+  const [gameState, setGameState] = useState(null);
   const [timeLeft, setTimeLeft] = useState(ROUND_DURATION);
-  const [questionAsked, setQuestionAsked] = useState(null);
-  const [questionsLeft, setQuestionsLeft] = useState(QUESTION_LIMIT);
-  const [hint, setHint] = useState(null);
   const [hintLoading, setHintLoading] = useState(false);
   const [skipLoading, setSkipLoading] = useState(false);
-  const [roundEnding, setRoundEnding] = useState(false);
-  const [heat, setHeat] = useState(0);
+  const [joinError, setJoinError] = useState(null);
+
   const timerRef = useRef(null);
+  const prevQuestionRef = useRef(null);
+
+  // Subscribe to Firestore lobby document
+  useEffect(() => {
+    if (!lobbyCode) return;
+    const ref = doc(db, 'lobbies', lobbyCode);
+    const unsub = onSnapshot(ref, (snap) => {
+      if (snap.exists()) setGameState(snap.data());
+    });
+    return () => unsub();
+  }, [lobbyCode]);
+
+  // Local countdown timer driven by roundEndTime stored in Firestore
+  useEffect(() => {
+    const endTime = gameState?.roundEndTime;
+    const status = gameState?.status;
+    const isHost = gameState?.hostId === currentPlayerId;
+    const code = lobbyCode;
+
+    if (status !== 'round' || !endTime) {
+      clearInterval(timerRef.current);
+      return;
+    }
+
+    clearInterval(timerRef.current);
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        clearInterval(timerRef.current);
+        if (isHost && code) {
+          updateDoc(doc(db, 'lobbies', code), { status: 'reveal' });
+        }
+      }
+    };
+    tick();
+    timerRef.current = setInterval(tick, 500);
+    return () => clearInterval(timerRef.current);
+  }, [gameState?.roundEndTime, gameState?.roundIndex, gameState?.status]);
+
+  // Storyteller detects new question from Firestore and generates hint
+  useEffect(() => {
+    if (!gameState || !lobbyCode) return;
+    const round = gameState.rounds?.[gameState.roundIndex];
+    if (!round || round.playerId !== currentPlayerId) return;
+    if (!gameState.questionAsked) return;
+    if (gameState.questionAsked === prevQuestionRef.current) return;
+
+    prevQuestionRef.current = gameState.questionAsked;
+    const ref = doc(db, 'lobbies', lobbyCode);
+    updateDoc(ref, { hintLoading: true, hint: null });
+    getAnswerHint(round.story.text, gameState.questionAsked, round.story.isTrue).then(h => {
+      updateDoc(ref, { hint: h, hintLoading: false });
+    });
+  }, [gameState?.questionAsked, gameState?.roundIndex]);
+
+  useEffect(() => () => clearInterval(timerRef.current), []);
 
   const generateCode = () => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     return Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
   };
 
-  const NPC_PLAYERS = [
-    { id: "npc_1", name: "Jordan", stories: ["I got a noise complaint at a Airbnb for playing Mario Kart too loud.", "I cried at a Subaru commercial in a dealership waiting room."], fakeStories: [], ready: true },
-    { id: "npc_2", name: "Priya", stories: ["I accidentally liked a photo from 2014 while stalking someone's ex.", "I once paid $40 for airport sushi and ate every single piece."], fakeStories: [], ready: true },
-    { id: "npc_3", name: "Marcus", stories: ["I got kicked out of a trivia night for knowing too much about Shrek.", "I fell asleep on the wrong bus and woke up in a different city."], fakeStories: [], ready: true },
-    { id: "npc_4", name: "Sam", stories: ["I told my dentist I floss every day for 6 years straight.", "I once returned a library book 11 years late and just paid the fine."], fakeStories: [], ready: true },
-  ];
+  const onCreateLobby = async (name) => {
+    const code = generateCode();
+    const player = { id: currentPlayerId, name, stories: [], fakeStories: [], ready: false };
+    await setDoc(doc(db, 'lobbies', code), {
+      code,
+      hostId: currentPlayerId,
+      status: 'lobby',
+      players: [player],
+      rounds: null,
+      roundIndex: 0,
+      scores: {},
+      votes: {},
+      heat: 0,
+      questionsLeft: QUESTION_LIMIT,
+      questionAsked: null,
+      hint: null,
+      hintLoading: false,
+      roundEndTime: null,
+    });
+    setLobbyCode(code);
+  };
 
-  const onTestWithNPCs = async () => {
-    setScreen("loading");
-    const you = { id: currentPlayerId, name: "You", stories: ["I once got a standing ovation at a karaoke bar by accident.", "I missed my own surprise party because I forgot it was my birthday."], fakeStories: [], ready: true };
-    const allPlayers = [you, ...NPC_PLAYERS];
-    const updatedPlayers = await Promise.all(
-      allPlayers.map(async (p) => {
-        const fakes = await generateFakeStories(p.stories);
-        return { ...p, fakeStories: fakes };
-      })
+  const onJoinLobby = async (code, name) => {
+    setJoinError(null);
+    try {
+      const ref = doc(db, 'lobbies', code);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) {
+        setJoinError("Lobby not found. Check the code and try again.");
+        return;
+      }
+      const data = snap.data();
+      if (!data.players.some(p => p.id === currentPlayerId)) {
+        const player = { id: currentPlayerId, name, stories: [], fakeStories: [], ready: false };
+        await updateDoc(ref, { players: arrayUnion(player) });
+      }
+      setLobbyCode(code);
+    } catch (e) {
+      setJoinError("Error joining lobby. Please try again.");
+    }
+  };
+
+  const onSubmitStories = async (s1, s2) => {
+    const updatedPlayers = gameState.players.map(p =>
+      p.id === currentPlayerId ? { ...p, stories: [s1, s2], ready: true } : p
     );
-    const builtRounds = buildRounds(updatedPlayers);
-    const initScores = {};
-    updatedPlayers.forEach(p => { initScores[p.id] = 0; });
-    setLobby({ code: "TEST", hostId: currentPlayerId, players: updatedPlayers });
-    setRounds(builtRounds);
-    setScores(initScores);
-    setRoundIndex(0);
-    setScreen("round");
-    startTimer();
-  };
-
-  const onCreateLobby = (name) => {
-    const player = { id: currentPlayerId, name, stories: [], fakeStories: [], ready: false };
-    setLobby({ code: generateCode(), hostId: currentPlayerId, players: [player] });
-    setScreen("lobby");
-  };
-
-  const onJoinLobby = (code, name) => {
-    const player = { id: currentPlayerId, name, stories: [], fakeStories: [], ready: false };
-    const host = { id: "host_sim", name: "Alex", stories: [], fakeStories: [], ready: false };
-    setLobby({ code, hostId: "host_sim", players: [host, player] });
-    setScreen("lobby");
-  };
-
-  const onSubmitStories = (s1, s2) => {
-    setLobby(prev => ({
-      ...prev,
-      players: prev.players.map(p => p.id === currentPlayerId ? { ...p, stories: [s1, s2], ready: true } : p),
-    }));
-  };
-
-  const startTimer = () => {
-    clearInterval(timerRef.current);
-    setTimeLeft(ROUND_DURATION);
-    setQuestionAsked(null);
-    setQuestionsLeft(QUESTION_LIMIT);
-    setHint(null);
-    setVotes({});
-    setRoundEnding(false);
-    setHeat(0);
-    timerRef.current = setInterval(() => {
-      setTimeLeft(t => {
-        if (t <= 1) { clearInterval(timerRef.current); setScreen("reveal"); return 0; }
-        if (t <= 11) setRoundEnding(true);
-        return t - 1;
-      });
-    }, 1000);
+    await updateDoc(doc(db, 'lobbies', lobbyCode), { players: updatedPlayers });
   };
 
   const onStartGame = async () => {
-    setScreen("loading");
+    const ref = doc(db, 'lobbies', lobbyCode);
+    await updateDoc(ref, { status: 'loading' });
     const updatedPlayers = await Promise.all(
-      lobby.players.map(async (p) => {
+      gameState.players.map(async (p) => {
         const stories = p.stories.length ? p.stories : ["I ate cereal with orange juice.", "I got lost in a corn maze for two hours."];
         const fakes = await generateFakeStories(stories);
         return { ...p, stories, fakeStories: fakes };
@@ -925,122 +968,170 @@ export default function App() {
     const builtRounds = buildRounds(updatedPlayers);
     const initScores = {};
     updatedPlayers.forEach(p => { initScores[p.id] = 0; });
-    setLobby(prev => ({ ...prev, players: updatedPlayers }));
-    setRounds(builtRounds);
-    setScores(initScores);
-    setRoundIndex(0);
-    setScreen("round");
-    startTimer();
+    await updateDoc(ref, {
+      status: 'round',
+      players: updatedPlayers,
+      rounds: builtRounds,
+      scores: initScores,
+      roundIndex: 0,
+      roundEndTime: Date.now() + ROUND_DURATION * 1000,
+      questionsLeft: QUESTION_LIMIT,
+      questionAsked: null,
+      hint: null,
+      hintLoading: false,
+      votes: {},
+      heat: 0,
+    });
   };
 
   const handleSkipStory = async () => {
-    const round = rounds[roundIndex];
-    const player = lobby.players.find(p => p.id === round.playerId);
+    const round = gameState.rounds[gameState.roundIndex];
+    const player = gameState.players.find(p => p.id === round.playerId);
     if (!player) return;
     setSkipLoading(true);
     const [newFake] = await generateFakeStories(player.stories);
-    const newRounds = rounds.map((r, i) => {
-      if (i !== roundIndex) return r;
-      return { ...r, story: { text: newFake, isTrue: false } };
-    });
-    setRounds(newRounds);
+    const newRounds = gameState.rounds.map((r, i) =>
+      i !== gameState.roundIndex ? r : { ...r, story: { text: newFake, isTrue: false } }
+    );
+    await updateDoc(doc(db, 'lobbies', lobbyCode), { rounds: newRounds, questionAsked: null, hint: null });
     setSkipLoading(false);
-    setQuestionAsked(null);
-    setHint(null);
   };
 
   const handleAskQuestion = async (q) => {
-    if (questionsLeft <= 0) return;
-    setQuestionsLeft(n => n - 1);
-    setQuestionAsked(q);
-    const round = rounds[roundIndex];
-    if (round.playerId === currentPlayerId) {
-      setHintLoading(true);
-      const h = await getAnswerHint(round.story.text, q, round.story.isTrue);
-      setHint(h);
-      setHintLoading(false);
-    }
+    if ((gameState?.questionsLeft ?? 0) <= 0) return;
+    await updateDoc(doc(db, 'lobbies', lobbyCode), {
+      questionAsked: q,
+      questionsLeft: gameState.questionsLeft - 1,
+      hint: null,
+      hintLoading: false,
+    });
   };
 
-  const handleVote = (vote) => {
-    setVotes(prev => ({ ...prev, [currentPlayerId]: vote }));
+  const handleVote = async (vote) => {
+    await updateDoc(doc(db, 'lobbies', lobbyCode), {
+      [`votes.${currentPlayerId}`]: vote,
+    });
   };
 
-  const applyRoundScores = useCallback(() => {
-    const round = rounds[roundIndex];
-    if (!round) return;
-    const voters = (lobby?.players || []).filter(p => p.id !== round.playerId);
+  const handleReaction = async (delta) => {
+    const newHeat = Math.min(100, Math.max(0, (gameState?.heat ?? 0) + delta));
+    await updateDoc(doc(db, 'lobbies', lobbyCode), { heat: newHeat });
+  };
+
+  const applyRoundScores = () => {
+    const round = gameState.rounds[gameState.roundIndex];
+    if (!round) return gameState.scores;
+    const voters = gameState.players.filter(p => p.id !== round.playerId);
     let tellerBonus = 0;
-    const updates = {};
+    const updated = { ...gameState.scores };
     voters.forEach(p => {
-      const v = votes[p.id];
+      const v = (gameState.votes || {})[p.id];
       if (v === round.story.isTrue) {
-        updates[p.id] = (scores[p.id] || 0) + 100;
+        updated[p.id] = (updated[p.id] || 0) + 100;
       } else {
         tellerBonus += 150;
       }
     });
-    updates[round.playerId] = (scores[round.playerId] || 0) + tellerBonus;
-    setScores(prev => ({ ...prev, ...updates }));
-  }, [rounds, roundIndex, votes, scores, lobby]);
+    updated[round.playerId] = (updated[round.playerId] || 0) + tellerBonus;
+    return updated;
+  };
 
-  const handleNextRound = () => {
-    applyRoundScores();
-    const nextIndex = roundIndex + 1;
-    if (nextIndex >= rounds.length || nextIndex % 4 === 0) {
-      setScreen("scores");
+  const handleNextRound = async () => {
+    if (gameState.hostId !== currentPlayerId) return;
+    const newScores = applyRoundScores();
+    const nextIndex = gameState.roundIndex + 1;
+    const ref = doc(db, 'lobbies', lobbyCode);
+
+    if (nextIndex >= gameState.rounds.length || nextIndex % 4 === 0) {
+      await updateDoc(ref, { scores: newScores, status: 'scores' });
     } else {
-      setRoundIndex(nextIndex);
-      setScreen("round");
-      startTimer();
+      await updateDoc(ref, {
+        scores: newScores,
+        roundIndex: nextIndex,
+        status: 'round',
+        roundEndTime: Date.now() + ROUND_DURATION * 1000,
+        questionsLeft: QUESTION_LIMIT,
+        questionAsked: null,
+        hint: null,
+        hintLoading: false,
+        votes: {},
+        heat: 0,
+      });
     }
   };
 
-  const handleContinueFromScores = () => {
-    const nextIndex = roundIndex + 1;
-    if (nextIndex >= rounds.length) {
-      setScreen("final");
+  const handleContinueFromScores = async () => {
+    if (gameState.hostId !== currentPlayerId) return;
+    const nextIndex = gameState.roundIndex + 1;
+    const ref = doc(db, 'lobbies', lobbyCode);
+
+    if (nextIndex >= gameState.rounds.length) {
+      await updateDoc(ref, { status: 'final' });
     } else {
-      setRoundIndex(nextIndex);
-      setScreen("round");
-      startTimer();
+      await updateDoc(ref, {
+        roundIndex: nextIndex,
+        status: 'round',
+        roundEndTime: Date.now() + ROUND_DURATION * 1000,
+        questionsLeft: QUESTION_LIMIT,
+        questionAsked: null,
+        hint: null,
+        hintLoading: false,
+        votes: {},
+        heat: 0,
+      });
     }
   };
 
-  useEffect(() => () => clearInterval(timerRef.current), []);
-
-  const currentRound = rounds[roundIndex];
-  const isStoryteller = currentRound?.playerId === currentPlayerId;
   const bg = { minHeight: "100vh", background: "#0d0d0d", color: "#eee" };
 
-  if (screen === "home") return <div style={bg}><HomeScreen onCreateLobby={onCreateLobby} onJoinLobby={onJoinLobby} onTestWithNPCs={onTestWithNPCs} /></div>;
-  if (screen === "lobby") return <div style={bg}><LobbyScreen lobby={lobby} currentPlayerId={currentPlayerId} onSubmitStories={onSubmitStories} onStartGame={onStartGame} /></div>;
+  // Home screen: no lobby yet
+  if (!lobbyCode) {
+    return <div style={bg}><HomeScreen onCreateLobby={onCreateLobby} onJoinLobby={onJoinLobby} joinError={joinError} /></div>;
+  }
+
+  // Waiting for Firestore to deliver first snapshot
+  if (!gameState) {
+    return <div style={bg}><LoadingScreen message="Connecting" /></div>;
+  }
+
+  const screen = gameState.status;
+  const rounds = gameState.rounds || [];
+  const roundIndex = gameState.roundIndex || 0;
+  const scores = gameState.scores || {};
+  const votes = gameState.votes || {};
+  const questionsLeft = gameState.questionsLeft ?? QUESTION_LIMIT;
+  const questionAsked = gameState.questionAsked || null;
+  const hint = gameState.hint || null;
+  const heat = gameState.heat || 0;
+  const roundEnding = timeLeft <= 10 && screen === 'round';
+  const isHost = gameState.hostId === currentPlayerId;
+  const currentRound = rounds[roundIndex];
+  const isStoryteller = currentRound?.playerId === currentPlayerId;
+
+  if (screen === "lobby") return <div style={bg}><LobbyScreen lobby={gameState} currentPlayerId={currentPlayerId} onSubmitStories={onSubmitStories} onStartGame={onStartGame} /></div>;
   if (screen === "loading") return <div style={bg}><LoadingScreen message="Generating fake stories" /></div>;
 
   if (screen === "round" && currentRound) {
-    const handleReaction = (delta) => {
-      setHeat(h => Math.min(100, Math.max(0, h + delta)));
-    };
     return (
       <div style={bg}>
         {isStoryteller
-          ? <StorytellerView round={currentRound} players={lobby.players} timeLeft={timeLeft} totalTime={ROUND_DURATION} questionAsked={questionAsked} hintLoading={hintLoading} hint={hint} onSkip={handleSkipStory} skipLoading={skipLoading} heat={heat} />
-          : <VoterView round={currentRound} players={lobby.players} timeLeft={timeLeft} totalTime={ROUND_DURATION} questionsLeft={questionsLeft} onAskQuestion={handleAskQuestion} onVote={handleVote} myVote={votes[currentPlayerId]} roundEnding={roundEnding} onReaction={handleReaction} heat={heat} />
+          ? <StorytellerView round={currentRound} players={gameState.players} timeLeft={timeLeft} totalTime={ROUND_DURATION} questionAsked={questionAsked} hintLoading={gameState.hintLoading || hintLoading} hint={hint} onSkip={handleSkipStory} skipLoading={skipLoading} heat={heat} />
+          : <VoterView round={currentRound} players={gameState.players} timeLeft={timeLeft} totalTime={ROUND_DURATION} questionsLeft={questionsLeft} onAskQuestion={handleAskQuestion} onVote={handleVote} myVote={votes[currentPlayerId]} roundEnding={roundEnding} onReaction={handleReaction} heat={heat} />
         }
       </div>
     );
   }
 
   if (screen === "reveal" && currentRound) {
-    return <div style={bg}><RevealScreen round={currentRound} players={lobby.players} votes={votes} onNext={handleNextRound} /></div>;
+    return <div style={bg}><RevealScreen round={currentRound} players={gameState.players} votes={votes} onNext={handleNextRound} isHost={isHost} /></div>;
   }
 
   if (screen === "scores") {
-    return <div style={bg}><ScoreboardScreen players={lobby.players} scores={scores} roundIndex={roundIndex + 1} totalRounds={rounds.length} onNext={handleContinueFromScores} isFinal={false} /></div>;
+    return <div style={bg}><ScoreboardScreen players={gameState.players} scores={scores} roundIndex={roundIndex + 1} totalRounds={rounds.length} onNext={handleContinueFromScores} isFinal={false} isHost={isHost} /></div>;
   }
 
   if (screen === "final") {
-    return <div style={bg}><ScoreboardScreen players={lobby.players} scores={scores} roundIndex={rounds.length} totalRounds={rounds.length} onNext={() => {}} isFinal={true} /></div>;
+    return <div style={bg}><ScoreboardScreen players={gameState.players} scores={scores} roundIndex={rounds.length} totalRounds={rounds.length} onNext={() => {}} isFinal={true} isHost={isHost} /></div>;
   }
 
   return <div style={bg}><LoadingScreen message="Loading" /></div>;
