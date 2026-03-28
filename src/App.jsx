@@ -5,6 +5,95 @@ import { doc, setDoc, updateDoc, onSnapshot, getDoc, arrayUnion } from 'firebase
 const ROUND_DURATION = 60;
 const QUESTION_LIMIT = 5;
 
+const STORY_BANK = [
+  "I got a DUI while on a scooter in Miami.",
+  "I know the birthplace of every president.",
+  "I accidentally swallowed a metal ball from a mouse trap when i was 8 and have no idea what happened to it.",
+  "I used to drink 6 cups of coffee a day before i knew what caffeine was.",
+  "I've traveled to every state in the united states except florida.",
+  "I tried to start a club for basket weaving in college because i thought it would get me laid.",
+  "I started a cult in an online video game when i was 13.",
+  "My childhood cat was named after my uncle who died in desert storm.",
+  "I failed my drivers test multiple times because I couldn't remember where the turn signal was.",
+  "My first concert was kid rock.",
+  "I accidentally went on a date with my high school teacher.",
+  "I can instantly smell if there is a mosquito in a room.",
+  "I fell off a mountain bike into a patch of poison ivy.",
+  "My highschools mascot was a Construction worker.",
+  "I went to a one direction concert when i was a kid and decided mid concert that i wasnt a fan anymore.",
+  "The first time i went on a vacation that i paid for, the resort flooded and i had to spend 6 days at Motel 5.",
+  "I didn't get a smart phone until I won Battle of the Books.",
+  "My childhood best friend is now in prison.",
+  "My elementary school principle was the lead singer for \"Cold War Kids\".",
+  "The first time i tried a carolina reaper i thought it was a fruit.",
+  "I got stung by a jellyfish and a stranger peed on me without asking.",
+  "I have a pellet from a BB gun lodged in my thigh from when i was 6.",
+  "I sat next to an internet celebrity on a flight to LA who ignored me the entire flight.",
+  "I won \"most likely to die in a tragic accident\" as a superlative in high school.",
+  "I have a secret middle name that I never tell anyone because it's so embarrassing.",
+  "My grandpa started a taxidermy business that got shut down after rumors that he worked on humans.",
+  "I found a puppy when i was 12 that turned out to be a coyote.",
+  "My great grandpa was the first openly gay man in the military.",
+  "I have an aunt who claims she's hooked up with Bill Clinton.",
+  "Up until i was 15 i couldn't pronounce Rs correctly.",
+  "I know how to say \"i love you\" in mandarin and cantonese.",
+  "I was recruited to play basketball by a private catholic school when i was in 6th grade because of my height.",
+  "I got to meet my celebrity crush because i snuck backstage at their concert.",
+  "I had a head injury when i was in junior high and could sing with perfect pitch for a month.",
+  "I still watch Dora the Explorer reruns to help me go to sleep.",
+  "Once a month i have a full conversation with a childhood friend in a language we invented.",
+  "My 5th grade teacher got fired while we were on a field trip.",
+  "I got fired from my first job for forgetting that i got hired.",
+  "I wanted to study sociology in college but my therapist told me it was a bad idea.",
+  "I can recite the alphabet with a single sound.",
+  "The first thing i ever bought on ebay was (what i thought was) a lightsaber replica from star wars.",
+  "I went to the midnight premiere for guardians of the galaxy and immediately fell asleep when i sat down in my chair.",
+  "My first apartment I had as an adult was at 123 forty-fifth street.",
+  "My grandma was the first woman to run an 11 second 100 yard dash.",
+  "I've accidentally pooped at the top of 3 mountains, not planned.",
+  "I made a comic about a lonely girl who was sad that she never sold any comics, but I never sold any.",
+  "I graduated top of my class in 8th grade.",
+  "My swim coach in high school was arrested in the middle of a swim meet.",
+  "I was in a ship wreck and had to get air lifted.",
+  "I crashed a moped into a fruit stand in vietnam.",
+  "I got assaulted by an old woman on a trip to Japan.",
+  "My school went to washington DC in 8th grade and we all found out that our teacher aid was a raging lunatic.",
+  "My uncle trains his dogs to paint fine art.",
+  "My first relationship was ended via locker note.",
+  "I was once in a relationship for less than 3 hours.",
+  "My first kiss was with a person who is now in prison.",
+  "I got banned from playing any sports for a whole year in high school.",
+  "My college mascot had to be changed while i was in school because it was so offensive.",
+  "I have 12 moles on my back that spell out the word back.",
+  "I was gifted a rare collection of quarters that i ended up spending on a beefy 5 layer burrito at Taco Bell.",
+  "I did a famous person report and reenactment of Malcom X in 5th grade.",
+  "I joined a co-ed basketball league my first year after college and met a guy who tried to sell me a synthetic drug that he invented.",
+  "I once was so constipated that i ended up in the ER on valentines day.",
+  "I got a speeding ticket the same day that i got my license.",
+  "I went to prom with my doppelganger from school.",
+  "I had a speech impediment when i was a kid and convinced my entire class that it was actually just a british accent.",
+  "I lost my keys on a waterslide and had to take the greyhound home in just my swim suit.",
+  "They made a movie about my hometown that is currently the worst rated movie on IMDB of 2008.",
+  "I know the name of every prime minister in NATO.",
+  "I went to high school with the guy who free soloed El Capitan in Yosemite.",
+  "I have the school record for high jump at my high school.",
+  "I have a secret recipe for chicken noodle soup that someone tried to buy off of me for $500 dollars.",
+  "I had a dentist that tried to convince me that brushing my teeth was actually making my teeth worse and that i should just swish bleach around in my mouth once a week.",
+  "During covid i got food poisoning so bad that i had to throw away my mattress.",
+  "I got kicked out of a pottery class for accidentally making a vase that looked too much like a certain private part.",
+  "I have a small line on my leg from when i bought a tattoo gun but gave it up after it hurt too bad.",
+  "Some people think cilantro tastes like soap but it tastes like an eraser to me.",
+  "I missed my flight when I was supposed to go study abroad but ended up just not going.",
+  "Me and three friends are in a famous music video that you probably have seen.",
+  "I'm currently playing a game of chess through a postcard with a penpal I met when I was 10.",
+  "I sold an antique chair, that my grandma gave to me, to a thrift shop only to find out that it was worth over $5000 dollars years later.",
+  "I got broken up with while i was at work as a cashier, they even waited in line to tell me.",
+  "I know how to say hello in six different languages.",
+  "I have a special technique for peeling oranges that works every time.",
+  "I can do 10 pull-ups with my special technique.",
+  "I won a talent show my junior year of high school by freestyle rapping.",
+];
+
 async function callClaude(messages, system) {
   const res = await fetch("/api/generate-stories", {
     method: "POST",
@@ -17,7 +106,9 @@ async function callClaude(messages, system) {
 
 async function generateFakeStories(realStories) {
   const storiesText = realStories.map((s, i) => (i + 1) + '. "' + s + '"').join("\n");
-  const prompt = 'You write fake personal stories for a party game called Thats Cap. They must sound like something a real person typed quickly on their phone - not polished, not clever, not trying to be funny.\n\nStudy the real stories below for tone, vocabulary, and energy level. Mirror that person\'s vibe exactly.\nReal stories:\n' + storiesText + '\n\nWrite exactly 2 fake stories. Rules:\n- Match the person\'s exact register (casual, weird, dry, chaotic - whatever they are)\n- Use specific but mundane details: a real-sounding place, a specific number, a brand, a name - something that makes it feel lived-in\n- Avoid "once", "somehow", "surprisingly", or any narrative flourish\n- No punchlines. No tidy endings. Just a thing that happened.\n- Imperfect grammar is fine\n- Do NOT overlap with the real stories\n- Length: 1-2 sentences max\n\nBad: "I once found myself in an unexpectedly awkward situation when I accidentally walked into the wrong wedding."\nGood: "Went to the wrong wedding reception for like 20 minutes before anyone said anything."\n\nRespond ONLY with a JSON array of 2 strings. No explanation, no markdown, no backticks.';
+  const shuffled = [...STORY_BANK].sort(() => Math.random() - 0.5);
+  const examples = shuffled.slice(0, 6).map((s, i) => (i + 1) + '. "' + s + '"').join("\n");
+  const prompt = 'You write fake personal stories for a party game called Thats Cap. They must sound like something a real person typed quickly on their phone - not polished, not clever, not trying to be funny.\n\nHere are examples of the tone, style, and energy level you should match. These are the gold standard:\n' + examples + '\n\nNow study the specific player\'s real stories below and mirror their exact vibe:\n' + storiesText + '\n\nWrite exactly 2 fake stories. Rules:\n- Match the style of the examples above: casual, specific, mildly weird, no punchlines\n- Use specific but mundane details: a real-sounding place, a specific number, a brand, a name - something that makes it feel lived-in\n- Avoid "once", "somehow", "surprisingly", or any narrative flourish\n- No punchlines. No tidy endings. Just a thing that happened.\n- Imperfect grammar is fine\n- Do NOT overlap with the real stories or the examples\n- Length: 1-2 sentences max\n\nBad: "I once found myself in an unexpectedly awkward situation when I accidentally walked into the wrong wedding."\nGood: "Went to the wrong wedding reception for like 20 minutes before anyone said anything."\n\nRespond ONLY with a JSON array of 2 strings. No explanation, no markdown, no backticks.';
 
   const text = await callClaude([{ role: "user", content: prompt }]);
   try {
@@ -54,29 +145,7 @@ function buildRounds(players) {
 function Logo() {
   return (
     <div style={{ textAlign: "center", marginBottom: 8 }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Lilita+One&display=swap');
-      `}</style>
-      <span style={{
-        fontFamily: "'Lilita One', 'Fredoka One', Impact, sans-serif",
-        fontSize: 64,
-        color: "#e8573a",
-        WebkitTextStroke: "3px #f5c842",
-        textShadow: "3px 3px 0 #f5c842, 5px 5px 0 #111",
-        display: "block",
-        lineHeight: 1,
-        fontStyle: "italic",
-        letterSpacing: 1,
-      }}>That's Cap</span>
-      <span style={{
-        fontFamily: "'Lilita One', 'Fredoka One', Impact, sans-serif",
-        fontSize: 13,
-        letterSpacing: 3,
-        color: "#f5c842",
-        textTransform: "uppercase",
-        fontStyle: "normal",
-        WebkitTextStroke: "0.5px #000",
-      }}>the party game of big fat liars</span>
+      <img src="/thats_cap_LOGO_main.png" alt="That's Cap" style={{ width: 260, maxWidth: "100%" }} />
     </div>
   );
 }
@@ -212,15 +281,35 @@ function LobbyScreen({ lobby, currentPlayerId, onSubmitStories, onStartGame }) {
   const [s1, setS1] = useState("");
   const [s2, setS2] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [mode, setMode] = useState("type"); // "type" | "bank"
+  const [bankSelected, setBankSelected] = useState([]);
+  const [bankSearch, setBankSearch] = useState("");
   const isHost = lobby.hostId === currentPlayerId;
   const allSubmitted = lobby.players.length >= 2 && lobby.players.every(p => p.ready);
 
+  const filteredBank = bankSearch.trim()
+    ? STORY_BANK.filter(s => s.toLowerCase().includes(bankSearch.toLowerCase()))
+    : STORY_BANK;
+
+  const toggleBankStory = (story) => {
+    setBankSelected(prev => {
+      if (prev.includes(story)) return prev.filter(s => s !== story);
+      if (prev.length >= 2) return prev;
+      return [...prev, story];
+    });
+  };
+
   const handleSubmit = () => {
-    if (s1.trim() && s2.trim()) {
+    if (mode === "type" && s1.trim() && s2.trim()) {
       onSubmitStories(s1.trim(), s2.trim());
+      setSubmitted(true);
+    } else if (mode === "bank" && bankSelected.length === 2) {
+      onSubmitStories(bankSelected[0], bankSelected[1]);
       setSubmitted(true);
     }
   };
+
+  const canSubmit = mode === "type" ? s1.trim() && s2.trim() : bankSelected.length === 2;
 
   return (
     <div style={{ maxWidth: 520, margin: "0 auto", padding: "32px 20px" }}>
@@ -250,14 +339,95 @@ function LobbyScreen({ lobby, currentPlayerId, onSubmitStories, onStartGame }) {
       {!submitted ? (
         <Card>
           <p style={{ fontFamily: "Bebas Neue, Impact", fontSize: 18, letterSpacing: 2, color: "#f5e642", marginTop: 0 }}>YOUR TWO TRUE STORIES</p>
-          <p style={{ fontFamily: "Courier New", fontSize: 11, color: "#666", marginBottom: 16 }}>
-            Short, first-person. Real things that happened to you.<br />
-            e.g. "I got a speeding ticket on a scooter in Vietnam."
-          </p>
-          <TextInput value={s1} onChange={setS1} placeholder="Story #1..." multiline style={{ marginBottom: 10 }} />
-          <TextInput value={s2} onChange={setS2} placeholder="Story #2..." multiline />
+
+          {/* Mode toggle */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+            <button
+              onClick={() => setMode("type")}
+              style={{
+                flex: 1, padding: "8px 0", border: "2px solid " + (mode === "type" ? "#f5c842" : "#333"),
+                borderRadius: 20, background: mode === "type" ? "#1a1500" : "transparent",
+                fontFamily: "Courier New", fontSize: 11, color: mode === "type" ? "#f5c842" : "#555",
+                cursor: "pointer", letterSpacing: 1,
+              }}
+            >TYPE MY OWN</button>
+            <button
+              onClick={() => setMode("bank")}
+              style={{
+                flex: 1, padding: "8px 0", border: "2px solid " + (mode === "bank" ? "#4ecdc4" : "#333"),
+                borderRadius: 20, background: mode === "bank" ? "#001a1a" : "transparent",
+                fontFamily: "Courier New", fontSize: 11, color: mode === "bank" ? "#4ecdc4" : "#555",
+                cursor: "pointer", letterSpacing: 1,
+              }}
+            >PICK FROM BANK</button>
+          </div>
+
+          {mode === "type" && (
+            <div>
+              <p style={{ fontFamily: "Courier New", fontSize: 11, color: "#666", marginBottom: 16, marginTop: 0 }}>
+                Short, first-person. Real things that happened to you.
+              </p>
+              <TextInput value={s1} onChange={setS1} placeholder="Story #1..." multiline style={{ marginBottom: 10 }} />
+              <TextInput value={s2} onChange={setS2} placeholder="Story #2..." multiline />
+            </div>
+          )}
+
+          {mode === "bank" && (
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <p style={{ fontFamily: "Courier New", fontSize: 11, color: "#666", margin: 0 }}>
+                  Pick 2 stories to claim as your own:
+                </p>
+                <span style={{ fontFamily: "Courier New", fontSize: 12, color: bankSelected.length === 2 ? "#5dbb5d" : "#f5c842" }}>
+                  {bankSelected.length}/2
+                </span>
+              </div>
+              <input
+                value={bankSearch}
+                onChange={e => setBankSearch(e.target.value)}
+                placeholder="search stories..."
+                style={{
+                  width: "100%", boxSizing: "border-box", background: "#111", border: "1px solid #333",
+                  borderRadius: 4, color: "#aaa", fontFamily: "Courier New", fontSize: 12,
+                  padding: "7px 10px", marginBottom: 10, outline: "none",
+                }}
+              />
+              <div style={{ maxHeight: 280, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
+                {filteredBank.map((story, i) => {
+                  const sel = bankSelected.includes(story);
+                  const disabled = !sel && bankSelected.length >= 2;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => !disabled && toggleBankStory(story)}
+                      style={{
+                        textAlign: "left", background: sel ? "#0d1a0d" : "#111",
+                        border: "1px solid " + (sel ? "#2d7a2d" : "#2a2a2a"),
+                        borderRadius: 6, padding: "10px 12px", cursor: disabled ? "default" : "pointer",
+                        fontFamily: "Courier New", fontSize: 12, color: disabled ? "#444" : sel ? "#5dbb5d" : "#bbb",
+                        lineHeight: 1.5, opacity: disabled ? 0.5 : 1,
+                      }}
+                    >
+                      {sel && <span style={{ marginRight: 6 }}>✓</span>}{story}
+                    </button>
+                  );
+                })}
+              </div>
+              {bankSelected.length > 0 && (
+                <div style={{ marginTop: 10, padding: "8px 10px", background: "#0a0a0a", borderRadius: 6, border: "1px solid #222" }}>
+                  <p style={{ fontFamily: "Courier New", fontSize: 10, color: "#555", margin: "0 0 6px 0", letterSpacing: 1 }}>SELECTED:</p>
+                  {bankSelected.map((s, i) => (
+                    <p key={i} style={{ fontFamily: "Courier New", fontSize: 12, color: "#5dbb5d", margin: "2px 0" }}>
+                      {i + 1}. {s}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div style={{ height: 16 }} />
-          <Btn onClick={handleSubmit} disabled={!s1.trim() || !s2.trim()}>LOCK IN STORIES</Btn>
+          <Btn onClick={handleSubmit} disabled={!canSubmit}>LOCK IN STORIES</Btn>
         </Card>
       ) : (
         <Card>
@@ -489,12 +659,9 @@ function drawGauge(canvas, heat) {
 }
 
 const REACTIONS = [
-  { label: "quit cappin'", sound: "buzzer", heat: 25 },
-  { label: "that's cap", sound: "buzzer", heat: 30 },
   { label: "you sure about that?", sound: "doubt", heat: 15 },
-  { label: "no way", sound: "buzzer", heat: 20 },
-  { label: "i believe you", sound: "ding", heat: -20 },
-  { label: "ok but how tho", sound: "doubt", heat: 10 },
+  { label: "that sounds like you", sound: "ding", heat: -10 },
+  { label: "quit cappin'", sound: "buzzer", heat: 25 },
 ];
 
 function PantsOnFireMeter({ heat }) {
@@ -704,9 +871,7 @@ function VoterView({ round, players, timeLeft, totalTime, questionsLeft, onAskQu
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
         {REACTIONS.map((r, i) => {
           const isActive = lastReaction === r.label;
-          const btnColor = r.heat > 0 ? "#e8573a" : "#5dbb5d";
-          const neutralColors = ["#f5c842", "#f5c842"];
-          const finalColor = r.heat === 15 || r.heat === 10 ? "#f5c842" : btnColor;
+          const finalColor = r.sound === "doubt" ? "#f5c842" : r.heat < 0 ? "#5dbb5d" : "#e8573a";
           return (
             <button
               key={r.label}
@@ -745,12 +910,15 @@ function VoterView({ round, players, timeLeft, totalTime, questionsLeft, onAskQu
   );
 }
 
-function RevealScreen({ round, players, votes, onNext, isHost }) {
+function RevealScreen({ round, players, votes, onNext, isHost, storyLikes, storyFlags, currentPlayerId, onLike, onFlag }) {
   const teller = players.find(p => p.id === round.playerId);
   const { story } = round;
   const votersList = players.filter(p => p.id !== round.playerId);
   const fooled = votersList.filter(p => votes[p.id] !== undefined && votes[p.id] !== story.isTrue).length;
   const tellerPoints = fooled * 150;
+  const hasLiked = storyLikes.includes(currentPlayerId);
+  const hasFlagged = storyFlags.includes(currentPlayerId);
+  const hasReacted = hasLiked || hasFlagged;
 
   return (
     <div style={{ maxWidth: 520, margin: "0 auto", padding: "32px 20px" }}>
@@ -766,6 +934,49 @@ function RevealScreen({ round, players, votes, onNext, isHost }) {
         <p style={{ fontFamily: "Courier New", fontSize: 11, color: "#555", marginTop: 0 }}>THE STORY WAS:</p>
         <p style={{ fontFamily: "Georgia, serif", fontSize: 18, color: "#fff", fontStyle: "italic", margin: 0 }}>"{story.text}"</p>
       </Card>
+
+      {/* Like / Flag reaction */}
+      <Card style={{ marginBottom: 16 }}>
+        <p style={{ fontFamily: "Courier New", fontSize: 11, color: "#555", marginTop: 0, marginBottom: 12 }}>RATE THIS STORY:</p>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            onClick={() => !hasReacted && onLike()}
+            disabled={hasReacted}
+            style={{
+              flex: 1, padding: "12px 0", border: "2px solid " + (hasLiked ? "#5dbb5d" : "#2a2a2a"),
+              borderRadius: 10, background: hasLiked ? "#0d2a0d" : "#111",
+              cursor: hasReacted ? "default" : "pointer", display: "flex", flexDirection: "column",
+              alignItems: "center", gap: 4,
+            }}
+          >
+            <span style={{ fontSize: 24 }}>👍</span>
+            <span style={{ fontFamily: "Courier New", fontSize: 11, color: hasLiked ? "#5dbb5d" : "#555" }}>
+              good story ({storyLikes.length})
+            </span>
+          </button>
+          <button
+            onClick={() => !hasReacted && onFlag()}
+            disabled={hasReacted}
+            style={{
+              flex: 1, padding: "12px 0", border: "2px solid " + (hasFlagged ? "#e8573a" : "#2a2a2a"),
+              borderRadius: 10, background: hasFlagged ? "#1a0800" : "#111",
+              cursor: hasReacted ? "default" : "pointer", display: "flex", flexDirection: "column",
+              alignItems: "center", gap: 4,
+            }}
+          >
+            <span style={{ fontSize: 24 }}>🚩</span>
+            <span style={{ fontFamily: "Courier New", fontSize: 11, color: hasFlagged ? "#e8573a" : "#555" }}>
+              bad story ({storyFlags.length})
+            </span>
+          </button>
+        </div>
+        {hasReacted && (
+          <p style={{ fontFamily: "Courier New", fontSize: 10, color: "#444", textAlign: "center", marginBottom: 0, marginTop: 10 }}>
+            reaction locked in
+          </p>
+        )}
+      </Card>
+
       <Card style={{ marginBottom: 16 }}>
         <p style={{ fontFamily: "Courier New", fontSize: 11, color: "#555", marginTop: 0 }}>VOTES:</p>
         {votersList.map(p => {
@@ -832,9 +1043,21 @@ function ScoreboardScreen({ players, scores, roundIndex, totalRounds, onNext, is
 }
 
 export default function App() {
-  const [currentPlayerId] = useState(() => "p_" + Date.now() + "_" + Math.random().toString(36).slice(2));
-  const [lobbyCode, setLobbyCode] = useState(null);
+  const [currentPlayerId] = useState(() => {
+    const saved = localStorage.getItem('thats-cap-pid');
+    if (saved) return saved;
+    const id = "p_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+    localStorage.setItem('thats-cap-pid', id);
+    return id;
+  });
+  const [lobbyCode, setLobbyCodeRaw] = useState(() => localStorage.getItem('thats-cap-lobby') || null);
   const [gameState, setGameState] = useState(null);
+
+  const setLobbyCode = (code) => {
+    if (code) localStorage.setItem('thats-cap-lobby', code);
+    else localStorage.removeItem('thats-cap-lobby');
+    setLobbyCodeRaw(code);
+  };
   const [timeLeft, setTimeLeft] = useState(ROUND_DURATION);
   const [hintLoading, setHintLoading] = useState(false);
   const [skipLoading, setSkipLoading] = useState(false);
@@ -848,7 +1071,13 @@ export default function App() {
     if (!lobbyCode) return;
     const ref = doc(db, 'lobbies', lobbyCode);
     const unsub = onSnapshot(ref, (snap) => {
-      if (snap.exists()) setGameState(snap.data());
+      if (snap.exists()) {
+        setGameState(snap.data());
+      } else {
+        // Lobby was deleted or expired
+        setGameState(null);
+        setLobbyCode(null);
+      }
     });
     return () => unsub();
   }, [lobbyCode]);
@@ -922,6 +1151,8 @@ export default function App() {
       hint: null,
       hintLoading: false,
       roundEndTime: null,
+      storyLikes: [],
+      storyFlags: [],
     });
     setLobbyCode(code);
   };
@@ -979,6 +1210,8 @@ export default function App() {
       hintLoading: false,
       votes: {},
       heat: 0,
+      storyLikes: [],
+      storyFlags: [],
     });
   };
 
@@ -1016,6 +1249,20 @@ export default function App() {
     await updateDoc(doc(db, 'lobbies', lobbyCode), { heat: newHeat });
   };
 
+  const handleLikeStory = async () => {
+    const likes = gameState?.storyLikes || [];
+    const flags = gameState?.storyFlags || [];
+    if (likes.includes(currentPlayerId) || flags.includes(currentPlayerId)) return;
+    await updateDoc(doc(db, 'lobbies', lobbyCode), { storyLikes: [...likes, currentPlayerId] });
+  };
+
+  const handleFlagStory = async () => {
+    const likes = gameState?.storyLikes || [];
+    const flags = gameState?.storyFlags || [];
+    if (likes.includes(currentPlayerId) || flags.includes(currentPlayerId)) return;
+    await updateDoc(doc(db, 'lobbies', lobbyCode), { storyFlags: [...flags, currentPlayerId] });
+  };
+
   const applyRoundScores = () => {
     const round = gameState.rounds[gameState.roundIndex];
     if (!round) return gameState.scores;
@@ -1041,7 +1288,7 @@ export default function App() {
     const ref = doc(db, 'lobbies', lobbyCode);
 
     if (nextIndex >= gameState.rounds.length || nextIndex % 4 === 0) {
-      await updateDoc(ref, { scores: newScores, status: 'scores' });
+      await updateDoc(ref, { scores: newScores, status: 'scores', storyLikes: [], storyFlags: [] });
     } else {
       await updateDoc(ref, {
         scores: newScores,
@@ -1054,6 +1301,8 @@ export default function App() {
         hintLoading: false,
         votes: {},
         heat: 0,
+        storyLikes: [],
+        storyFlags: [],
       });
     }
   };
@@ -1076,6 +1325,8 @@ export default function App() {
         hintLoading: false,
         votes: {},
         heat: 0,
+        storyLikes: [],
+        storyFlags: [],
       });
     }
   };
@@ -1089,7 +1340,16 @@ export default function App() {
 
   // Waiting for Firestore to deliver first snapshot
   if (!gameState) {
-    return <div style={bg}><LoadingScreen message="Connecting" /></div>;
+    return (
+      <div style={bg}>
+        <LoadingScreen message="Reconnecting" />
+        <div style={{ textAlign: "center", marginTop: 16 }}>
+          <button onClick={() => setLobbyCode(null)} style={{ background: "none", border: "none", color: "#555", fontFamily: "Courier New", fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>
+            leave game
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const screen = gameState.status;
@@ -1101,17 +1361,28 @@ export default function App() {
   const questionAsked = gameState.questionAsked || null;
   const hint = gameState.hint || null;
   const heat = gameState.heat || 0;
+  const storyLikes = gameState.storyLikes || [];
+  const storyFlags = gameState.storyFlags || [];
   const roundEnding = timeLeft <= 10 && screen === 'round';
   const isHost = gameState.hostId === currentPlayerId;
   const currentRound = rounds[roundIndex];
   const isStoryteller = currentRound?.playerId === currentPlayerId;
 
-  if (screen === "lobby") return <div style={bg}><LobbyScreen lobby={gameState} currentPlayerId={currentPlayerId} onSubmitStories={onSubmitStories} onStartGame={onStartGame} /></div>;
+  const leaveBtn = (
+    <div style={{ position: "fixed", top: 12, right: 16, zIndex: 999 }}>
+      <button onClick={() => setLobbyCode(null)} style={{ background: "#111", border: "1px solid #333", color: "#555", fontFamily: "Courier New", fontSize: 11, cursor: "pointer", borderRadius: 20, padding: "5px 12px", letterSpacing: 1 }}>
+        ✕ leave
+      </button>
+    </div>
+  );
+
+  if (screen === "lobby") return <div style={bg}>{leaveBtn}<LobbyScreen lobby={gameState} currentPlayerId={currentPlayerId} onSubmitStories={onSubmitStories} onStartGame={onStartGame} /></div>;
   if (screen === "loading") return <div style={bg}><LoadingScreen message="Generating fake stories" /></div>;
 
   if (screen === "round" && currentRound) {
     return (
       <div style={bg}>
+        {leaveBtn}
         {isStoryteller
           ? <StorytellerView round={currentRound} players={gameState.players} timeLeft={timeLeft} totalTime={ROUND_DURATION} questionAsked={questionAsked} hintLoading={gameState.hintLoading || hintLoading} hint={hint} onSkip={handleSkipStory} skipLoading={skipLoading} heat={heat} />
           : <VoterView round={currentRound} players={gameState.players} timeLeft={timeLeft} totalTime={ROUND_DURATION} questionsLeft={questionsLeft} onAskQuestion={handleAskQuestion} onVote={handleVote} myVote={votes[currentPlayerId]} roundEnding={roundEnding} onReaction={handleReaction} heat={heat} />
@@ -1121,11 +1392,11 @@ export default function App() {
   }
 
   if (screen === "reveal" && currentRound) {
-    return <div style={bg}><RevealScreen round={currentRound} players={gameState.players} votes={votes} onNext={handleNextRound} isHost={isHost} /></div>;
+    return <div style={bg}>{leaveBtn}<RevealScreen round={currentRound} players={gameState.players} votes={votes} onNext={handleNextRound} isHost={isHost} storyLikes={storyLikes} storyFlags={storyFlags} currentPlayerId={currentPlayerId} onLike={handleLikeStory} onFlag={handleFlagStory} /></div>;
   }
 
   if (screen === "scores") {
-    return <div style={bg}><ScoreboardScreen players={gameState.players} scores={scores} roundIndex={roundIndex + 1} totalRounds={rounds.length} onNext={handleContinueFromScores} isFinal={false} isHost={isHost} /></div>;
+    return <div style={bg}>{leaveBtn}<ScoreboardScreen players={gameState.players} scores={scores} roundIndex={roundIndex + 1} totalRounds={rounds.length} onNext={handleContinueFromScores} isFinal={false} isHost={isHost} /></div>;
   }
 
   if (screen === "final") {
