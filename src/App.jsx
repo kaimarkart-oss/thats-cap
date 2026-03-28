@@ -1067,14 +1067,32 @@ export default function App() {
   const prevQuestionRef = useRef(null);
   const audioRef = useRef(null);
   const [muted, setMuted] = useState(false);
+  const audioStartedRef = useRef(false);
 
   useEffect(() => {
     const audio = new Audio('/vittemacop-funny-tv-theme-hip-hop-447506.mp3');
     audio.loop = true;
     audio.volume = 0.4;
     audioRef.current = audio;
-    audio.play().catch(() => {});
-    return () => { audio.pause(); audio.src = ''; };
+
+    const startAudio = () => {
+      if (!audioStartedRef.current) {
+        audioStartedRef.current = true;
+        audio.play().catch(() => {});
+        window.removeEventListener('click', startAudio);
+        window.removeEventListener('keydown', startAudio);
+      }
+    };
+
+    window.addEventListener('click', startAudio);
+    window.addEventListener('keydown', startAudio);
+
+    return () => {
+      audio.pause();
+      audio.src = '';
+      window.removeEventListener('click', startAudio);
+      window.removeEventListener('keydown', startAudio);
+    };
   }, []);
 
   useEffect(() => {
