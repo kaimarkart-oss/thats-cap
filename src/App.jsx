@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { db } from './firebase';
 import { doc, setDoc, updateDoc, onSnapshot, getDoc, arrayUnion } from 'firebase/firestore';
 
-const ROUND_DURATION = 60;
+const ROUND_DURATION = 180;
 const QUESTION_LIMIT = 5;
 
 const STORY_BANK = [
@@ -955,6 +955,7 @@ export default function App() {
   const [joinError, setJoinError] = useState(null);
 
   const timerRef = useRef(null);
+  const tickIntervalRef = useRef(null);
   const prevQuestionRef = useRef(null);
   const audioRef = useRef(null);
   const [muted, setMuted] = useState(false);
@@ -1068,6 +1069,35 @@ export default function App() {
   }, [gameState?.questionAsked, gameState?.roundIndex]);
 
   useEffect(() => () => clearInterval(timerRef.current), []);
+
+  // Ticking sound during last 30 seconds — stops when round ends (voting/reveal phase)
+  useEffect(() => {
+    const status = gameState?.status;
+    if (status !== 'round' || timeLeft > 30 || timeLeft <= 0) {
+      clearInterval(tickIntervalRef.current);
+      tickIntervalRef.current = null;
+      return;
+    }
+    const period = Math.max(150, timeLeft * 33);
+    clearInterval(tickIntervalRef.current);
+    tickIntervalRef.current = setInterval(() => {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(timeLeft <= 10 ? 1400 : 1000, now);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        osc.start(now);
+        osc.stop(now + 0.05);
+      } catch (e) {}
+    }, period);
+    return () => clearInterval(tickIntervalRef.current);
+  }, [timeLeft, gameState?.status]);
 
   const generateCode = () => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
