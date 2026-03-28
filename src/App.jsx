@@ -1065,6 +1065,38 @@ export default function App() {
 
   const timerRef = useRef(null);
   const prevQuestionRef = useRef(null);
+  const audioRef = useRef(null);
+  const [muted, setMuted] = useState(false);
+
+  useEffect(() => {
+    const audio = new Audio('/vittemacop-funny-tv-theme-hip-hop-447506.mp3');
+    audio.loop = true;
+    audio.volume = 0.4;
+    audioRef.current = audio;
+    audio.play().catch(() => {});
+    return () => { audio.pause(); audio.src = ''; };
+  }, []);
+
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.muted = muted;
+  }, [muted]);
+
+  const musicBtn = (
+    <button
+      onClick={() => setMuted(m => !m)}
+      style={{
+        position: "fixed", bottom: 16, right: 16, zIndex: 1000,
+        background: "#111", border: "1px solid #333", color: "#888",
+        fontFamily: "Courier New", fontSize: 18, cursor: "pointer",
+        borderRadius: "50%", width: 38, height: 38,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        lineHeight: 1,
+      }}
+      title={muted ? "Unmute music" : "Mute music"}
+    >
+      {muted ? "🔇" : "🔊"}
+    </button>
+  );
 
   // Subscribe to Firestore lobby document
   useEffect(() => {
@@ -1335,7 +1367,7 @@ export default function App() {
 
   // Home screen: no lobby yet
   if (!lobbyCode) {
-    return <div style={bg}><HomeScreen onCreateLobby={onCreateLobby} onJoinLobby={onJoinLobby} joinError={joinError} /></div>;
+    return <div style={bg}><HomeScreen onCreateLobby={onCreateLobby} onJoinLobby={onJoinLobby} joinError={joinError} />{musicBtn}</div>;
   }
 
   // Waiting for Firestore to deliver first snapshot
@@ -1348,6 +1380,7 @@ export default function App() {
             leave game
           </button>
         </div>
+        {musicBtn}
       </div>
     );
   }
@@ -1376,8 +1409,8 @@ export default function App() {
     </div>
   );
 
-  if (screen === "lobby") return <div style={bg}>{leaveBtn}<LobbyScreen lobby={gameState} currentPlayerId={currentPlayerId} onSubmitStories={onSubmitStories} onStartGame={onStartGame} /></div>;
-  if (screen === "loading") return <div style={bg}><LoadingScreen message="Generating fake stories" /></div>;
+  if (screen === "lobby") return <div style={bg}>{leaveBtn}<LobbyScreen lobby={gameState} currentPlayerId={currentPlayerId} onSubmitStories={onSubmitStories} onStartGame={onStartGame} />{musicBtn}</div>;
+  if (screen === "loading") return <div style={bg}><LoadingScreen message="Generating fake stories" />{musicBtn}</div>;
 
   if (screen === "round" && currentRound) {
     return (
@@ -1387,21 +1420,22 @@ export default function App() {
           ? <StorytellerView round={currentRound} players={gameState.players} timeLeft={timeLeft} totalTime={ROUND_DURATION} questionAsked={questionAsked} hintLoading={gameState.hintLoading || hintLoading} hint={hint} onSkip={handleSkipStory} skipLoading={skipLoading} heat={heat} />
           : <VoterView round={currentRound} players={gameState.players} timeLeft={timeLeft} totalTime={ROUND_DURATION} questionsLeft={questionsLeft} onAskQuestion={handleAskQuestion} onVote={handleVote} myVote={votes[currentPlayerId]} roundEnding={roundEnding} onReaction={handleReaction} heat={heat} />
         }
+        {musicBtn}
       </div>
     );
   }
 
   if (screen === "reveal" && currentRound) {
-    return <div style={bg}>{leaveBtn}<RevealScreen round={currentRound} players={gameState.players} votes={votes} onNext={handleNextRound} isHost={isHost} storyLikes={storyLikes} storyFlags={storyFlags} currentPlayerId={currentPlayerId} onLike={handleLikeStory} onFlag={handleFlagStory} /></div>;
+    return <div style={bg}>{leaveBtn}<RevealScreen round={currentRound} players={gameState.players} votes={votes} onNext={handleNextRound} isHost={isHost} storyLikes={storyLikes} storyFlags={storyFlags} currentPlayerId={currentPlayerId} onLike={handleLikeStory} onFlag={handleFlagStory} />{musicBtn}</div>;
   }
 
   if (screen === "scores") {
-    return <div style={bg}>{leaveBtn}<ScoreboardScreen players={gameState.players} scores={scores} roundIndex={roundIndex + 1} totalRounds={rounds.length} onNext={handleContinueFromScores} isFinal={false} isHost={isHost} /></div>;
+    return <div style={bg}>{leaveBtn}<ScoreboardScreen players={gameState.players} scores={scores} roundIndex={roundIndex + 1} totalRounds={rounds.length} onNext={handleContinueFromScores} isFinal={false} isHost={isHost} />{musicBtn}</div>;
   }
 
   if (screen === "final") {
-    return <div style={bg}><ScoreboardScreen players={gameState.players} scores={scores} roundIndex={rounds.length} totalRounds={rounds.length} onNext={() => {}} isFinal={true} isHost={isHost} /></div>;
+    return <div style={bg}><ScoreboardScreen players={gameState.players} scores={scores} roundIndex={rounds.length} totalRounds={rounds.length} onNext={() => {}} isFinal={true} isHost={isHost} />{musicBtn}</div>;
   }
 
-  return <div style={bg}><LoadingScreen message="Loading" /></div>;
+  return <div style={bg}><LoadingScreen message="Loading" />{musicBtn}</div>;
 }
