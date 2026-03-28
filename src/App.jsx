@@ -359,7 +359,7 @@ function LoadingScreen({ message }) {
   );
 }
 
-function StorytellerView({ round, players, timeLeft, totalTime, questionAsked, hintLoading, hint, onSkip, skipLoading, heat, onRevealedChange }) {
+function StorytellerView({ round, players, timeLeft, displayedTimeLeft, timerAccelerated, totalTime, questionAsked, hintLoading, hint, onSkip, skipLoading, heat, onRevealedChange }) {
   const { story } = round;
   const [revealed, setRevealed] = useState(false);
 
@@ -400,7 +400,10 @@ function StorytellerView({ round, players, timeLeft, totalTime, questionAsked, h
 
   return (
     <div style={{ maxWidth: 520, margin: "0 auto", padding: "20px 20px" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Lilita+One&display=swap');`}</style>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Lilita+One&display=swap');
+        @keyframes timerFlash { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+      `}</style>
 
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
@@ -417,12 +420,15 @@ function StorytellerView({ round, players, timeLeft, totalTime, questionAsked, h
 
       {/* Timer */}
       <div style={{ marginBottom: 12 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
           <span style={{ fontFamily: "Courier New", fontSize: 10, color: "#444", letterSpacing: 2 }}>TIME</span>
-          <span style={{ fontFamily: "'Lilita One', Impact", fontSize: 20, color: timeLeft <= 10 ? "#e8573a" : "#f5c842" }}>{timeLeft}s</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {timerAccelerated && <span style={{ fontFamily: "Courier New", fontSize: 9, color: "#ff3333", letterSpacing: 1, border: "1px solid #ff3333", borderRadius: 4, padding: "1px 5px", animation: "timerFlash 0.5s ease-in-out infinite" }}>2x</span>}
+            <span style={{ fontFamily: "'Lilita One', Impact", fontSize: 20, color: timerAccelerated ? "#ff3333" : (timeLeft <= 10 ? "#e8573a" : "#f5c842"), animation: timerAccelerated ? "timerFlash 0.5s ease-in-out infinite" : "none" }}>{displayedTimeLeft}s</span>
+          </div>
         </div>
         <div style={{ height: 8, background: "#1a1a1a", borderRadius: 4, overflow: "hidden" }}>
-          <div style={{ height: "100%", width: (timeLeft / totalTime * 100) + "%", background: timeLeft <= 10 ? "#e8573a" : "#f5c842", borderRadius: 4, transition: "width 1s linear" }} />
+          <div style={{ height: "100%", width: (displayedTimeLeft / totalTime * 100) + "%", background: timerAccelerated ? "#ff3333" : (timeLeft <= 10 ? "#e8573a" : "#f5c842"), borderRadius: 4, transition: "width 0.5s linear" }} />
         </div>
       </div>
 
@@ -615,7 +621,7 @@ function playSound(type) {
   } catch (e) {}
 }
 
-function VoterView({ round, players, timeLeft, totalTime, questionsLeft, onAskQuestion, onVote, myVote, roundEnding, onReaction, heat }) {
+function VoterView({ round, players, timeLeft, displayedTimeLeft, timerAccelerated, totalTime, questionsLeft, onAskQuestion, onVote, myVote, roundEnding, onReaction, heat }) {
   const [question, setQuestion] = useState("");
   const [lastReaction, setLastReaction] = useState(null);
   const [flashKey, setFlashKey] = useState(0);
@@ -663,14 +669,20 @@ function VoterView({ round, players, timeLeft, totalTime, questionsLeft, onAskQu
   if (roundEnding) {
     return (
       <div style={{ maxWidth: 520, margin: "0 auto", padding: "24px 20px" }}>
-        <style>{`@import url('https://fonts.googleapis.com/css2?family=Lilita+One&display=swap');`}</style>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Lilita+One&display=swap');
+          @keyframes timerFlash { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+        `}</style>
         <div style={{ marginBottom: 12 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
             <span style={{ fontFamily: "Courier New", fontSize: 10, color: "#444", letterSpacing: 2 }}>TIME</span>
-            <span style={{ fontFamily: "'Lilita One', Impact", fontSize: 20, color: "#e8573a" }}>{timeLeft}s</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {timerAccelerated && <span style={{ fontFamily: "Courier New", fontSize: 9, color: "#ff3333", letterSpacing: 1, border: "1px solid #ff3333", borderRadius: 4, padding: "1px 5px", animation: "timerFlash 0.5s ease-in-out infinite" }}>2x</span>}
+              <span style={{ fontFamily: "'Lilita One', Impact", fontSize: 20, color: timerAccelerated ? "#ff3333" : "#e8573a", animation: timerAccelerated ? "timerFlash 0.5s ease-in-out infinite" : "none" }}>{displayedTimeLeft}s</span>
+            </div>
           </div>
           <div style={{ height: 8, background: "#1a1a1a", borderRadius: 4, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: (timeLeft / totalTime * 100) + "%", background: "#e8573a", borderRadius: 4, transition: "width 1s linear" }} />
+            <div style={{ height: "100%", width: (displayedTimeLeft / totalTime * 100) + "%", background: timerAccelerated ? "#ff3333" : "#e8573a", borderRadius: 4, transition: "width 0.5s linear" }} />
           </div>
         </div>
         <div style={{ textAlign: "center", marginBottom: 24 }}>
@@ -716,6 +728,7 @@ function VoterView({ round, players, timeLeft, totalTime, questionsLeft, onAskQu
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Lilita+One&display=swap');
         @keyframes reactionPop { 0% { transform:scale(0.92); opacity:0; } 60% { transform:scale(1.06); } 100% { transform:scale(1); opacity:1; } }
+        @keyframes timerFlash { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
       `}</style>
 
       {/* Header */}
@@ -728,12 +741,15 @@ function VoterView({ round, players, timeLeft, totalTime, questionsLeft, onAskQu
 
       {/* Timer */}
       <div style={{ marginBottom: 12 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
           <span style={{ fontFamily: "Courier New", fontSize: 10, color: "#444", letterSpacing: 2 }}>TIME</span>
-          <span style={{ fontFamily: "'Lilita One', Impact", fontSize: 20, color: "#f5c842" }}>{timeLeft}s</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {timerAccelerated && <span style={{ fontFamily: "Courier New", fontSize: 9, color: "#ff3333", letterSpacing: 1, border: "1px solid #ff3333", borderRadius: 4, padding: "1px 5px", animation: "timerFlash 0.5s ease-in-out infinite" }}>2x</span>}
+            <span style={{ fontFamily: "'Lilita One', Impact", fontSize: 20, color: timerAccelerated ? "#ff3333" : "#f5c842", animation: timerAccelerated ? "timerFlash 0.5s ease-in-out infinite" : "none" }}>{displayedTimeLeft}s</span>
+          </div>
         </div>
         <div style={{ height: 8, background: "#1a1a1a", borderRadius: 4, overflow: "hidden" }}>
-          <div style={{ height: "100%", width: (timeLeft / totalTime * 100) + "%", background: "#f5c842", borderRadius: 4, transition: "width 1s linear" }} />
+          <div style={{ height: "100%", width: (displayedTimeLeft / totalTime * 100) + "%", background: timerAccelerated ? "#ff3333" : "#f5c842", borderRadius: 4, transition: "width 0.5s linear" }} />
         </div>
       </div>
 
@@ -956,7 +972,10 @@ export default function App() {
 
   const timerRef = useRef(null);
   const tickIntervalRef = useRef(null);
+  const displayTickRef = useRef(null);
   const prevQuestionRef = useRef(null);
+  const [timerAccelerated, setTimerAccelerated] = useState(false);
+  const [displayedTimeLeft, setDisplayedTimeLeft] = useState(ROUND_DURATION);
   const audioRef = useRef(null);
   const [muted, setMuted] = useState(false);
   const audioStartedRef = useRef(false);
@@ -1070,15 +1089,43 @@ export default function App() {
 
   useEffect(() => () => clearInterval(timerRef.current), []);
 
-  // Ticking sound during last 30 seconds — stops when round ends (voting/reveal phase)
+  // Heat-based timer acceleration with hysteresis (on at 100%, off below 80%)
+  useEffect(() => {
+    const h = gameState?.heat || 0;
+    if (h >= 100) setTimerAccelerated(true);
+    else if (h < 80) setTimerAccelerated(false);
+  }, [gameState?.heat]);
+
+  // Displayed timer: 2x speed when accelerated, snaps back to real time when not
+  useEffect(() => {
+    clearInterval(displayTickRef.current);
+    const status = gameState?.status;
+    if (status !== 'round' || timeLeft <= 0) {
+      setDisplayedTimeLeft(timeLeft);
+      return;
+    }
+    if (!timerAccelerated) {
+      setDisplayedTimeLeft(timeLeft);
+      return;
+    }
+    // Accelerated: cap at real timeLeft, then count down at 2x (1 per 500ms)
+    setDisplayedTimeLeft(prev => Math.min(prev, timeLeft));
+    displayTickRef.current = setInterval(() => {
+      setDisplayedTimeLeft(prev => Math.max(0, prev - 1));
+    }, 500);
+    return () => clearInterval(displayTickRef.current);
+  }, [timerAccelerated, gameState?.status, timeLeft]);
+
+  // Ticking sound during last 30 seconds (or always when accelerated) — stops when round ends
   useEffect(() => {
     const status = gameState?.status;
-    if (status !== 'round' || timeLeft > 30 || timeLeft <= 0) {
+    if (status !== 'round' || (timeLeft > 30 && !timerAccelerated) || timeLeft <= 0) {
       clearInterval(tickIntervalRef.current);
       tickIntervalRef.current = null;
       return;
     }
-    const period = Math.max(150, timeLeft * 33);
+    const basePeriod = Math.max(150, timeLeft * 33);
+    const period = timerAccelerated ? Math.max(80, Math.floor(basePeriod / 2)) : basePeriod;
     clearInterval(tickIntervalRef.current);
     tickIntervalRef.current = setInterval(() => {
       try {
@@ -1097,7 +1144,7 @@ export default function App() {
       } catch (e) {}
     }, period);
     return () => clearInterval(tickIntervalRef.current);
-  }, [timeLeft, gameState?.status]);
+  }, [timeLeft, timerAccelerated, gameState?.status]);
 
   const generateCode = () => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -1354,8 +1401,8 @@ export default function App() {
       <div style={bg}>
         {leaveBtn}
         {isStoryteller
-          ? <StorytellerView round={currentRound} players={gameState.players} timeLeft={timeLeft} totalTime={ROUND_DURATION} questionAsked={questionAsked} hintLoading={gameState.hintLoading || hintLoading} hint={hint} onSkip={handleSkipStory} skipLoading={skipLoading} heat={heat} onRevealedChange={(isRevealed) => { if (audioRef.current) audioRef.current.volume = isRevealed ? 0.1 : 0.4; }} />
-          : <VoterView round={currentRound} players={gameState.players} timeLeft={timeLeft} totalTime={ROUND_DURATION} questionsLeft={questionsLeft} onAskQuestion={handleAskQuestion} onVote={handleVote} myVote={votes[currentPlayerId]} roundEnding={roundEnding} onReaction={handleReaction} heat={heat} />
+          ? <StorytellerView round={currentRound} players={gameState.players} timeLeft={timeLeft} displayedTimeLeft={displayedTimeLeft} timerAccelerated={timerAccelerated} totalTime={ROUND_DURATION} questionAsked={questionAsked} hintLoading={gameState.hintLoading || hintLoading} hint={hint} onSkip={handleSkipStory} skipLoading={skipLoading} heat={heat} onRevealedChange={(isRevealed) => { if (audioRef.current) audioRef.current.volume = isRevealed ? 0.1 : 0.4; }} />
+          : <VoterView round={currentRound} players={gameState.players} timeLeft={timeLeft} displayedTimeLeft={displayedTimeLeft} timerAccelerated={timerAccelerated} totalTime={ROUND_DURATION} questionsLeft={questionsLeft} onAskQuestion={handleAskQuestion} onVote={handleVote} myVote={votes[currentPlayerId]} roundEnding={roundEnding} onReaction={handleReaction} heat={heat} />
         }
         {musicBtn}
       </div>
