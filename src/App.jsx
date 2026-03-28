@@ -461,10 +461,17 @@ function LoadingScreen({ message }) {
   );
 }
 
-function StorytellerView({ round, players, timeLeft, totalTime, questionAsked, hintLoading, hint, onSkip, skipLoading, heat }) {
+function StorytellerView({ round, players, timeLeft, totalTime, questionAsked, hintLoading, hint, onSkip, skipLoading, heat, onRevealedChange }) {
   const { story } = round;
   const [confirmSkip, setConfirmSkip] = useState(false);
   const [revealed, setRevealed] = useState(false);
+
+  useEffect(() => {
+    if (revealed) {
+      onRevealedChange?.(true);
+      return () => onRevealedChange?.(false);
+    }
+  }, [revealed]);
   const canvasRef = useRef(null);
   const animHeatRef = useRef(heat);
   const animFrameRef = useRef(null);
@@ -1435,7 +1442,7 @@ export default function App() {
       <div style={bg}>
         {leaveBtn}
         {isStoryteller
-          ? <StorytellerView round={currentRound} players={gameState.players} timeLeft={timeLeft} totalTime={ROUND_DURATION} questionAsked={questionAsked} hintLoading={gameState.hintLoading || hintLoading} hint={hint} onSkip={handleSkipStory} skipLoading={skipLoading} heat={heat} />
+          ? <StorytellerView round={currentRound} players={gameState.players} timeLeft={timeLeft} totalTime={ROUND_DURATION} questionAsked={questionAsked} hintLoading={gameState.hintLoading || hintLoading} hint={hint} onSkip={handleSkipStory} skipLoading={skipLoading} heat={heat} onRevealedChange={(isRevealed) => { if (audioRef.current) audioRef.current.volume = isRevealed ? 0.1 : 0.4; }} />
           : <VoterView round={currentRound} players={gameState.players} timeLeft={timeLeft} totalTime={ROUND_DURATION} questionsLeft={questionsLeft} onAskQuestion={handleAskQuestion} onVote={handleVote} myVote={votes[currentPlayerId]} roundEnding={roundEnding} onReaction={handleReaction} heat={heat} />
         }
         {musicBtn}
