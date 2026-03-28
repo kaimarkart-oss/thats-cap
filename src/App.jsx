@@ -281,35 +281,15 @@ function LobbyScreen({ lobby, currentPlayerId, onSubmitStories, onStartGame }) {
   const [s1, setS1] = useState("");
   const [s2, setS2] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [mode, setMode] = useState("type"); // "type" | "bank"
-  const [bankSelected, setBankSelected] = useState([]);
-  const [bankSearch, setBankSearch] = useState("");
   const isHost = lobby.hostId === currentPlayerId;
   const allSubmitted = lobby.players.length >= 2 && lobby.players.every(p => p.ready);
 
-  const filteredBank = bankSearch.trim()
-    ? STORY_BANK.filter(s => s.toLowerCase().includes(bankSearch.toLowerCase()))
-    : STORY_BANK;
-
-  const toggleBankStory = (story) => {
-    setBankSelected(prev => {
-      if (prev.includes(story)) return prev.filter(s => s !== story);
-      if (prev.length >= 2) return prev;
-      return [...prev, story];
-    });
-  };
-
   const handleSubmit = () => {
-    if (mode === "type" && s1.trim() && s2.trim()) {
+    if (s1.trim() && s2.trim()) {
       onSubmitStories(s1.trim(), s2.trim());
-      setSubmitted(true);
-    } else if (mode === "bank" && bankSelected.length === 2) {
-      onSubmitStories(bankSelected[0], bankSelected[1]);
       setSubmitted(true);
     }
   };
-
-  const canSubmit = mode === "type" ? s1.trim() && s2.trim() : bankSelected.length === 2;
 
   return (
     <div style={{ maxWidth: 520, margin: "0 auto", padding: "32px 20px" }}>
@@ -339,95 +319,13 @@ function LobbyScreen({ lobby, currentPlayerId, onSubmitStories, onStartGame }) {
       {!submitted ? (
         <Card>
           <p style={{ fontFamily: "Bebas Neue, Impact", fontSize: 18, letterSpacing: 2, color: "#f5e642", marginTop: 0 }}>YOUR TWO TRUE STORIES</p>
-
-          {/* Mode toggle */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-            <button
-              onClick={() => setMode("type")}
-              style={{
-                flex: 1, padding: "8px 0", border: "2px solid " + (mode === "type" ? "#f5c842" : "#333"),
-                borderRadius: 20, background: mode === "type" ? "#1a1500" : "transparent",
-                fontFamily: "Courier New", fontSize: 11, color: mode === "type" ? "#f5c842" : "#555",
-                cursor: "pointer", letterSpacing: 1,
-              }}
-            >TYPE MY OWN</button>
-            <button
-              onClick={() => setMode("bank")}
-              style={{
-                flex: 1, padding: "8px 0", border: "2px solid " + (mode === "bank" ? "#4ecdc4" : "#333"),
-                borderRadius: 20, background: mode === "bank" ? "#001a1a" : "transparent",
-                fontFamily: "Courier New", fontSize: 11, color: mode === "bank" ? "#4ecdc4" : "#555",
-                cursor: "pointer", letterSpacing: 1,
-              }}
-            >PICK FROM BANK</button>
-          </div>
-
-          {mode === "type" && (
-            <div>
-              <p style={{ fontFamily: "Courier New", fontSize: 11, color: "#666", marginBottom: 16, marginTop: 0 }}>
-                Short, first-person. Real things that happened to you.
-              </p>
-              <TextInput value={s1} onChange={setS1} placeholder="Story #1..." multiline style={{ marginBottom: 10 }} />
-              <TextInput value={s2} onChange={setS2} placeholder="Story #2..." multiline />
-            </div>
-          )}
-
-          {mode === "bank" && (
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <p style={{ fontFamily: "Courier New", fontSize: 11, color: "#666", margin: 0 }}>
-                  Pick 2 stories to claim as your own:
-                </p>
-                <span style={{ fontFamily: "Courier New", fontSize: 12, color: bankSelected.length === 2 ? "#5dbb5d" : "#f5c842" }}>
-                  {bankSelected.length}/2
-                </span>
-              </div>
-              <input
-                value={bankSearch}
-                onChange={e => setBankSearch(e.target.value)}
-                placeholder="search stories..."
-                style={{
-                  width: "100%", boxSizing: "border-box", background: "#111", border: "1px solid #333",
-                  borderRadius: 4, color: "#aaa", fontFamily: "Courier New", fontSize: 12,
-                  padding: "7px 10px", marginBottom: 10, outline: "none",
-                }}
-              />
-              <div style={{ maxHeight: 280, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
-                {filteredBank.map((story, i) => {
-                  const sel = bankSelected.includes(story);
-                  const disabled = !sel && bankSelected.length >= 2;
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => !disabled && toggleBankStory(story)}
-                      style={{
-                        textAlign: "left", background: sel ? "#0d1a0d" : "#111",
-                        border: "1px solid " + (sel ? "#2d7a2d" : "#2a2a2a"),
-                        borderRadius: 6, padding: "10px 12px", cursor: disabled ? "default" : "pointer",
-                        fontFamily: "Courier New", fontSize: 12, color: disabled ? "#444" : sel ? "#5dbb5d" : "#bbb",
-                        lineHeight: 1.5, opacity: disabled ? 0.5 : 1,
-                      }}
-                    >
-                      {sel && <span style={{ marginRight: 6 }}>✓</span>}{story}
-                    </button>
-                  );
-                })}
-              </div>
-              {bankSelected.length > 0 && (
-                <div style={{ marginTop: 10, padding: "8px 10px", background: "#0a0a0a", borderRadius: 6, border: "1px solid #222" }}>
-                  <p style={{ fontFamily: "Courier New", fontSize: 10, color: "#555", margin: "0 0 6px 0", letterSpacing: 1 }}>SELECTED:</p>
-                  {bankSelected.map((s, i) => (
-                    <p key={i} style={{ fontFamily: "Courier New", fontSize: 12, color: "#5dbb5d", margin: "2px 0" }}>
-                      {i + 1}. {s}
-                    </p>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
+          <p style={{ fontFamily: "Courier New", fontSize: 11, color: "#666", marginBottom: 16, marginTop: 0 }}>
+            Short, first-person. Real things that happened to you.
+          </p>
+          <TextInput value={s1} onChange={setS1} placeholder="Story #1..." multiline style={{ marginBottom: 10 }} />
+          <TextInput value={s2} onChange={setS2} placeholder="Story #2..." multiline />
           <div style={{ height: 16 }} />
-          <Btn onClick={handleSubmit} disabled={!canSubmit}>LOCK IN STORIES</Btn>
+          <Btn onClick={handleSubmit} disabled={!s1.trim() || !s2.trim()}>LOCK IN STORIES</Btn>
         </Card>
       ) : (
         <Card>
@@ -463,7 +361,6 @@ function LoadingScreen({ message }) {
 
 function StorytellerView({ round, players, timeLeft, totalTime, questionAsked, hintLoading, hint, onSkip, skipLoading, heat, onRevealedChange }) {
   const { story } = round;
-  const [confirmSkip, setConfirmSkip] = useState(false);
   const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
@@ -564,23 +461,10 @@ function StorytellerView({ round, players, timeLeft, totalTime, questionAsked, h
         )}
         {revealed && !story.isTrue && (
           <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #2a2a2a" }}>
-            {!confirmSkip ? (
-              <button onClick={() => setConfirmSkip(true)} style={{ background: "none", border: "1px solid #444", borderRadius: 20, color: "#666", fontFamily: "Courier New", fontSize: 11, padding: "5px 12px", cursor: "pointer" }}>
-                flag as bad story
-              </button>
-            ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                <span style={{ fontFamily: "Courier New", fontSize: 11, color: "#888" }}>Replace this story?</span>
-                <button onClick={() => { setConfirmSkip(false); setRevealed(false); onSkip(); }} disabled={skipLoading}
-                  style={{ background: "#e8573a", border: "none", borderRadius: 20, color: "#fff", fontFamily: "'Lilita One', Impact", fontSize: 13, padding: "6px 14px", cursor: skipLoading ? "not-allowed" : "pointer" }}>
-                  {skipLoading ? "generating..." : "yes, replace it"}
-                </button>
-                <button onClick={() => setConfirmSkip(false)}
-                  style={{ background: "none", border: "1px solid #444", borderRadius: 20, color: "#666", fontFamily: "Courier New", fontSize: 11, padding: "5px 10px", cursor: "pointer" }}>
-                  nevermind
-                </button>
-              </div>
-            )}
+            <button onClick={() => { setRevealed(false); onSkip(); }} disabled={skipLoading}
+              style={{ background: "none", border: "1px solid #555", borderRadius: 20, color: skipLoading ? "#555" : "#aaa", fontFamily: "Courier New", fontSize: 11, padding: "6px 14px", cursor: skipLoading ? "not-allowed" : "pointer" }}>
+              {skipLoading ? "generating..." : "generate alternate"}
+            </button>
           </div>
         )}
       </div>
@@ -1243,14 +1127,12 @@ export default function App() {
 
   const onStartGame = async () => {
     const ref = doc(db, 'lobbies', lobbyCode);
-    await updateDoc(ref, { status: 'loading' });
-    const updatedPlayers = await Promise.all(
-      gameState.players.map(async (p) => {
-        const stories = p.stories.length ? p.stories : ["I ate cereal with orange juice.", "I got lost in a corn maze for two hours."];
-        const fakes = await generateFakeStories(stories);
-        return { ...p, stories, fakeStories: fakes };
-      })
-    );
+    const updatedPlayers = gameState.players.map((p) => {
+      const stories = p.stories.length ? p.stories : ["I ate cereal with orange juice.", "I got lost in a corn maze for two hours."];
+      const shuffled = [...STORY_BANK].sort(() => Math.random() - 0.5);
+      const fakes = shuffled.slice(0, 2);
+      return { ...p, stories, fakeStories: fakes };
+    });
     const builtRounds = buildRounds(updatedPlayers);
     const initScores = {};
     updatedPlayers.forEach(p => { initScores[p.id] = 0; });
@@ -1435,7 +1317,7 @@ export default function App() {
   );
 
   if (screen === "lobby") return <div style={bg}>{leaveBtn}<LobbyScreen lobby={gameState} currentPlayerId={currentPlayerId} onSubmitStories={onSubmitStories} onStartGame={onStartGame} />{musicBtn}</div>;
-  if (screen === "loading") return <div style={bg}><LoadingScreen message="Generating fake stories" />{musicBtn}</div>;
+  if (screen === "loading") return <div style={bg}><LoadingScreen message="Starting game" />{musicBtn}</div>;
 
   if (screen === "round" && currentRound) {
     return (
